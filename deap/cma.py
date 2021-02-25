@@ -23,6 +23,7 @@ Evolution Strategy.
 import copy
 from math import sqrt, log, exp
 import numpy
+import cupy
 
 import tools
 
@@ -95,7 +96,9 @@ class Strategy(object):
                                       1. / (21. * self.dim ** 2))
 
         self.C = self.params.get("cmatrix", numpy.identity(self.dim))
-        self.diagD, self.B = numpy.linalg.eigh(self.C)
+        diagD_gpu, B_gpu = cupy.linalg.eigh(cupy.asarray(self.C))
+        self.diagD = cupy.asnumpy(diagD_gpu)
+        self.B = cupy.asnumpy(B_gpu)
 
         indx = numpy.argsort(self.diagD)
         self.diagD = self.diagD[indx] ** 0.5
@@ -161,7 +164,10 @@ class Strategy(object):
         self.sigma *= numpy.exp((numpy.linalg.norm(self.ps) / self.chiN - 1.) *
                                 self.cs / self.damps)
 
-        self.diagD, self.B = numpy.linalg.eigh(self.C)
+        diagD_gpu, B_gpu = cupy.linalg.eigh(cupy.asarray(self.C))
+        self.diagD = cupy.asnumpy(diagD_gpu)
+        self.B = cupy.asnumpy(B_gpu)
+
         indx = numpy.argsort(self.diagD)
 
         self.cond = self.diagD[indx[-1]] / self.diagD[indx[0]]
